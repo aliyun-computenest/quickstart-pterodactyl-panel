@@ -3,7 +3,7 @@ Service:
   DeployType: ros
   DeployMetadata:
     ServiceInstanceNameRule:
-      Prefix: pterodactyl
+      Prefix: pterodactyl-
     SupplierDeployMetadata:
       ArtifactRelation:
         'centos_7_9_x64_20G_alibase_20240403.vhd':
@@ -105,11 +105,13 @@ ImageBuilder:
       curl -Lo docker-compose.yml https://ghp.ci/https://raw.githubusercontent.com/pterodactyl-china/panel/1.0-develop/docker-compose.example.yml
       sed -i 's|APP_URL: "http://example.com"|APP_URL: "http://localhost:80"|' ./docker-compose.yml
       chmod +x docker-compose.yml
+      docker compose up -d
+      docker compose down
       
       cd /root
-      cat > /etc/systemd/system/grafana.service <<EOF
+      cat > /etc/systemd/system/pterodactyl.service <<EOF
       [Unit]
-      Description=Grafana Application Service
+      Description=Pterodactyl Panel Service
       Requires=docker.service
       After=docker.service
 
@@ -124,5 +126,8 @@ ImageBuilder:
       [Install]
       WantedBy=multi-user.target
       EOF
+      
+      systemctl enable pterodactyl
+      systemctl start pterodactyl
       
       ARGUS_VERSION=3.5.7 /bin/bash -c "$(curl -sS https://cms-agent-ap-southeast-1.oss-ap-southeast-1-internal.aliyuncs.com/Argus/agent_install_ecs-1.7.sh)" >> /root/install_cms_agent.log 2>&1
