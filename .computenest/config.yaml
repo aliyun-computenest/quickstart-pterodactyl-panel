@@ -131,6 +131,8 @@ ImageBuilder:
       systemctl enable pterodactyl
       systemctl start pterodactyl
       
+      ARGUS_VERSION=3.5.7 /bin/bash -c "$(curl -sS https://cms-agent-ap-southeast-1.oss-ap-southeast-1-internal.aliyuncs.com/Argus/agent_install_ecs-1.7.sh)" 2>&1
+      
       # 关闭基础镜像非必要服务，降低基础服务资源占用
       systemctl stop systemd-resolved.service
       systemctl disable systemd-resolved.service
