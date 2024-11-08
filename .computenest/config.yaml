@@ -87,7 +87,6 @@ ImageBuilder:
   EcsImage:
     RegionId: ap-southeast-1
     SourceImageId: aliyun_3_x64_20G_alibase_20240819.vhd
-    SystemDiskSize: 20
     InstanceType: ecs.c6.large
     InternetMaxBandwidthOut: 10
     CommandType: RunShellScript
