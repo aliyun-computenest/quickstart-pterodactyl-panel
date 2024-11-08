@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="计算巢是阿里云开放给企业应用服务商的服务管理平台。服务商能够在计算巢上发布私有化部署服务，为其客户提供云上软件一键部署的能力；同时也支持全托管模式的服务，赋能服务商托管其客户资源。">
+  <title>AnalyticDB PostgreSQL数据库与LLM（大语言模型）构建‘仓内智能’ - Aliyun 计算巢 x Demo</title>
+
+  <link rel="shortcut icon" href="img/favicon.ico">
+
+  <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css">
+  <link rel="stylesheet" href="css/theme.css">
+  
+
+  
+
+  
+  
+
+  
+    <script src="search/main.js"></script>
+  
+
+  
+
+  <script src="js/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="nav-inner">
+        <div class="logo">
+          <img src="./img/logo-2x.png">
+        </div>
+        <div class="nav-list">
+          <ul>
+          
+              <li><a href="#analyticdb-postgresqlllm">AnalyticDB PostgreSQL数据库与LLM（大语言模型）构建‘仓内智能’</a></li>
+              
+                  <li><a href="#_1">背景介绍</a></li>
+                  
+              
+                  <li><a href="#_2">部署架构</a></li>
+                  
+              
+                  <li><a href="#analyticdb-postgresql-adbpg">开通 AnalyticDB PostgreSQL (ADBPG) 仓内智能</a></li>
+                  
+              
+                  <li><a href="#_3">创建流程</a></li>
+                  
+                      <li class="li-h3"><a href="#1-">1. 首先在阿里云账户 - 控制台中，找到‘计算巢’服务</a></li>
+                  
+                      <li class="li-h3"><a href="#2-analyticdb-postgresql">2. 进入计算巢服务后，点击‘服务市场’，并在搜索框中搜寻关键字‘仓内智能’，找到‘AnalyticDB PostgreSQL 仓内智能’服务，并单击进入。</a></li>
+                  
+                      <li class="li-h3"><a href="#3-adbpg-pai-eas-adbpgvpc">3. 选择 ADBPG 与 PAI-EAS 开通地域，并依次配置需要部署的大语言服务、ADBPG数据仓库的规格、VPC等相关信息。检查配置无误后，确认订单，创建服务。</a></li>
+                  
+                      <li class="li-h3"><a href="#4-adbpg-pai-eas-20-100">4. 计算巢会分别创建：ADBPG 数据仓库实例、与部署在 PAI-EAS 的大模型服务。整体时间大约20分钟左右。等待进度条变为 100%，点击进入。</a></li>
+                  
+                      <li class="li-h3"><a href="#5-endpoint-token-pai-eas">5. 在‘概览’中，可以查询到调用大模型服务，所用到的访问地址（Endpoint）与 Token。这两个参数非常重要。同时也可在 PAI-EAS 服务中查询到（详情见后）。</a></li>
+                  
+                      <li class="li-h3"><a href="#6-adbpgpai-eas">6. 选择‘资源’，查看部署完成的 ADBPG数据仓库实例信息、与PAI-EAS 大模型语言服务。</a></li>
+                  
+                      <li class="li-h3"><a href="#7-6-analyticdb-postgresql-adbpg">7. 点击步骤 #6 中的 AnalyticDB PostgreSQL，查看开通的 ADBPG数据仓库实例信息。</a></li>
+                  
+                      <li class="li-h3"><a href="#8-6-pai-eas-endpoint-token5">8. 点击步骤 #6 中的‘机器学习’服务，可以查看到PAI-EAS 大语言模型服务，对应的具体部署信息。例如：查看大语言模型的 Endpoint 与 Token。这部分信息，在后续使用‘大语言模型’服务时会用到（通过步骤#5，也可以查询到该信息）。</a></li>
+                  
+                      <li class="li-h3"><a href="#9">9. 参考以下文档，使用‘仓内智能’特性。</a></li>
+                  
+              
+          
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="content theme-github">
+      
+      <div class="content-inner">        
+        
+        <h1 id="analyticdb-postgresqlllm">AnalyticDB PostgreSQL数据库与LLM（大语言模型）构建‘仓内智能’</h1>
+<h2 id="_1">背景介绍</h2>
+<p><code>AnalyticDB PostgreSQL 作为一个数据分析与轻量级AI一体化的平台，可以帮助绝大多数中小型客户在数据库内部，闭环实现‘数据分析为主’与‘AI应用为辅’的诉求，为数据分析需求插上AI的翅膀。通过与部署在阿里云 PAI-EAS 平台上的 LLM（大语言模型） 进行交互，实现对语言的推理、分类、归纳、总结等扩展能力。</code>。</p>
+<pre><code>本服务用于开通：AnalyticDB PostgreSQL数据库实例 + PAI-EAS平台上的LLM（大语言）服务，快速体验‘仓内智能’。
+</code></pre>
+<h2 id="_2">部署架构</h2>
+<p><img alt="avatar" src="deploy.png" /></p>
+<pre><code>通过AnalyticDB PostgreSQL数据库提供的新函数：PG_CATALOG.AI_GENERATE_TEXT(...)，与部署在阿里云PAI模型在线服务（EAS）平台中的LLM（大语言模型）服务进行交互，实现对语言的推理、分类、归纳、总结。
+</code></pre>
+<h2 id="analyticdb-postgresql-adbpg">开通 AnalyticDB PostgreSQL (ADBPG) 仓内智能</h2>
+<pre><code>通过计算巢服务，一站式创建：
+1. ADBPG 数据仓库实例； 
+2. 在PAI-EAS平台上部署LLM（大语言）服务；
+</code></pre>
+<h2 id="_3">创建流程</h2>
+<h3 id="1-">1. 首先在阿里云账户 - 控制台中，找到‘计算巢’服务</h3>
+<p><img alt="avatar" src="image.png" /></p>
+<h3 id="2-analyticdb-postgresql">2. 进入计算巢服务后，点击‘服务市场’，并在搜索框中搜寻关键字‘仓内智能’，找到‘AnalyticDB PostgreSQL 仓内智能’服务，并单击进入。</h3>
+<p><img alt="avatar" src="image2.png" /></p>
+<h3 id="3-adbpg-pai-eas-adbpgvpc">3. 选择 ADBPG 与 PAI-EAS 开通地域，并依次配置需要部署的大语言服务、ADBPG数据仓库的规格、VPC等相关信息。检查配置无误后，确认订单，创建服务。</h3>
+<p><img alt="avatar" src="image3.png" />
+<img alt="avatar" src="image4.png" />
+<img alt="avatar" src="image5.png" /></p>
+<h3 id="4-adbpg-pai-eas-20-100">4. 计算巢会分别创建：ADBPG 数据仓库实例、与部署在 PAI-EAS 的大模型服务。整体时间大约20分钟左右。等待进度条变为 100%，点击进入。</h3>
+<p><img alt="avatar" src="image6.png" />
+<img alt="avatar" src="image7.png" /></p>
+<h3 id="5-endpoint-token-pai-eas">5. 在‘概览’中，可以查询到调用大模型服务，所用到的访问地址（Endpoint）与 Token。这两个参数非常重要。同时也可在 PAI-EAS 服务中查询到（详情见后）。</h3>
+<p><img alt="avatar" src="image8.png" /></p>
+<h3 id="6-adbpgpai-eas">6. 选择‘资源’，查看部署完成的 ADBPG数据仓库实例信息、与PAI-EAS 大模型语言服务。</h3>
+<p><img alt="avatar" src="image9.png" /></p>
+<h3 id="7-6-analyticdb-postgresql-adbpg">7. 点击步骤 #6 中的 AnalyticDB PostgreSQL，查看开通的 ADBPG数据仓库实例信息。</h3>
+<p><img alt="avatar" src="image10.png" /></p>
+<h3 id="8-6-pai-eas-endpoint-token5">8. 点击步骤 #6 中的‘机器学习’服务，可以查看到PAI-EAS 大语言模型服务，对应的具体部署信息。例如：查看大语言模型的 Endpoint 与 Token。这部分信息，在后续使用‘大语言模型’服务时会用到（通过步骤#5，也可以查询到该信息）。</h3>
+<p><img alt="avatar" src="image11.png" /></p>
+<h3 id="9">9. 参考以下文档，使用‘仓内智能’特性。</h3>
+<p><code>https://help.aliyun.com/zh/analyticdb-for-postgresql/user-guide/aigc-warehouse-intelligence?spm=a2c4g.11186623.0.i3</code></p>
+        
+      </div>
+
+      <div class="copyrights">© 2009-2022 Aliyun.com 版权所有</div>
+    </div>
+  </div>
+  
+  <!--
+  MkDocs version      : 1.6.1
+  Docs Build Date UTC : 2024-11-08 08:52:02.482739+00:00
+  -->
+</body>
+</html>
