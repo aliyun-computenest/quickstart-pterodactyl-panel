@@ -169,10 +169,10 @@ ImageBuilder:
           rm -rfv /var/lib/cloud
           rm -rfv /etc/ssh/sshd_config.d/50-cloud-init.conf
       
-          if [ -d /usr/local/share/aliyun-assist/*/log/ ];then
-              rm -rfv  /usr/local/share/aliyun-assist/*/log/*
-          fi
-          rm -rf  /var/log/ecsgo.log*
+          # if [ -d /usr/local/share/aliyun-assist/*/log/ ];then
+          #    rm -rfv  /usr/local/share/aliyun-assist/*/log/*
+          # fi
+          # rm -rf  /var/log/ecsgo.log*
       
           rm -rf /tmp/*
           rm -f /root/{.bash_history,.viminfo,*.cfg,*.log*}
