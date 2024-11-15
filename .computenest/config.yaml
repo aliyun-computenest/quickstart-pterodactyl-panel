@@ -49,7 +49,7 @@ Service:
 Artifact:
   EcsImage:
     ArtifactType: EcsImage
-    ArtifactName: pterodactyl
+    ArtifactName: pterodactyl-panel
     Description: pterodactyl
     ArtifactProperty:
       RegionId: ${ImageBuilder.EcsImage.RegionId}
