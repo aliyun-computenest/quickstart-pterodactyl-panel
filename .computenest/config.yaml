@@ -230,7 +230,7 @@ ImageBuilder:
       }
       
       
-      clean_source_cache
-      clean_log
-      clean_root_passwd
-      clean_cmd_history
+      # clean_source_cache
+      # clean_log
+      # clean_root_passwd
+      # clean_cmd_history
