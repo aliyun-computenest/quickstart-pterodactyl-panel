@@ -95,44 +95,6 @@ ImageBuilder:
     Tags: [ ]
     CommandContent: |-
         #!/bin/bash
-        yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
-        yum makecache
-        yum -y install docker-ce jq git
-        systemctl enable docker
-        systemctl start docker
-
-        mkdir -p /var/www/pterodactyl
-        cd /var/www/pterodactyl
-        curl -Lo docker-compose.yml https://ghp.ci/https://raw.githubusercontent.com/pterodactyl-china/panel/1.0-develop/docker-compose.example.yml
-        sed -i 's|APP_URL: "http://example.com"|APP_URL: "http://localhost:80"|' ./docker-compose.yml
-        chmod +x docker-compose.yml
-        docker compose up -d
-        docker compose down
-
-        cd /root
-        cat > /etc/systemd/system/pterodactyl.service <<EOF
-        [Unit]
-        Description=Pterodactyl Panel Service
-        Requires=docker.service
-        After=docker.service
-
-        [Service]
-        Type=oneshot
-        RemainAfterExit=yes
-        WorkingDirectory=/var/www/pterodactyl
-        ExecStart=/usr/bin/docker compose up -d
-        ExecStop=/usr/bin/docker compose down
-        TimeoutStartSec=0
-
-        [Install]
-        WantedBy=multi-user.target
-        EOF
-
-        systemctl enable pterodactyl
-        systemctl start pterodactyl
-
-        ARGUS_VERSION=3.5.7 /bin/bash -c "$(curl -sS https://cms-agent-ap-southeast-1.oss-ap-southeast-1-internal.aliyuncs.com/Argus/agent_install_ecs-1.7.sh)" 2>&1
-
         # 关闭基础镜像非必要服务，降低基础服务资源占用
         systemctl stop systemd-resolved.service
         systemctl disable systemd-resolved.service
@@ -140,6 +102,444 @@ ImageBuilder:
         systemctl stop rpcbind.service
         systemctl disable rpcbind.service
         systemctl disable rpcbind.socket
+        systemd-analyze blame
+
+        # 关闭防火墙
+        systemctl disable firewalld
+        systemctl stop firewalld
+
+        # 关闭update-motd 服务
+        systemctl disable update-motd.service
+        systemctl stop update-motd.service
+
+        systemctl stop systemd-resolved.service
+        systemctl disable systemd-resolved.service
+        systemctl stop rpcbind.socket
+        systemctl stop rpcbind.service
+        systemctl disable rpcbind.service
+        systemctl disable rpcbind.socket
+
+        # 升级基础组件：
+        dnf upgrade-minimal
+        # 安装基础组件
+        yum check-update
+        yum -y upgrade --security
+        yum -y upgrade-minimal
+
+        # 安装docker-ce
+        yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+        yum makecache
+        yum install -y wget curl unzip git jq
+        yum install -y docker-ce
+        systemctl enable docker
+        systemctl start docker
+
+
+        cat > /usr/lib/systemd/system/app-init.service << EOF_APPINIT_SERVICE
+        [Unit]
+        Description=Application init service
+        Wants=cloud-final.service
+        Requires=network-online.target
+        After=network-online.target cloud-final.service docker.service
+
+        [Service]
+        Type=oneshot
+        ExecStart=/bin/bash /usr/local/bin/app-init.sh
+        RemainAfterExit=false
+        KillMode=control-group
+        Restart=no
+        StandardOutput=file:/var/log/app-init.log
+        StandardError=file:/var/log/app-init.log
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF_APPINIT_SERVICE
+
+
+        cat > /usr/local/bin/app-init.sh << 'EOF_APPINIT_SH'
+        #!/bin/bash
+
+        # 初始化应用......
+        echo "$(date +"%Y-%m-%d %H:%M:%S") init applications......"
+
+        if /bin/bash /usr/local/bin/startup.sh; then
+          echo "$(date +"%Y-%m-%d %H:%M:%S") init applications successfully"
+        else
+          echo "$(date +"%Y-%m-%d %H:%M:%S") init applications failed"
+        fi
+
+        # 执行成功后服务自毁, 避免再次执行，勿动
+        rm -rf /usr/local/bin/startup.sh
+        rm -- "$0"
+        systemctl disable app-init.service
+        rm -rf /etc/systemd/system/app-init.service /usr/lib/systemd/system/app-init.service
+        systemctl daemon-reload
+        EOF_APPINIT_SH
+
+
+        cat > /usr/local/bin/startup.sh << 'EOF_STARTUP_SH'
+        #!/bin/bash
+
+        set -x
+
+        prefixChinaRegion="cn-"
+        region=$(curl -s http://100.100.100.200/latest/meta-data/region-id)
+        ip=$(curl -s 100.100.100.200/latest/meta-data/eipv4)
+
+        mkdir -p /etc/docker/
+        echo '{
+            "default-address-pools": [
+                {
+                    "base": "10.255.0.0/16",
+                    "size": 24
+                }
+            ]
+        }' > /etc/docker/daemon.json
+        if [[ $region == ${prefixChinaRegion}* && $region != "cn-hongkong" ]]; then
+          echo '{
+              "default-address-pools": [
+                  {
+                      "base": "10.255.0.0/16",
+                      "size": 24
+                  }
+              ],
+              "registry-mirrors": [
+                  "https://mirrors-ssl.aliyuncs.com/"
+              ]
+          }' > /etc/docker/daemon.json
+        fi
+
+        systemctl restart docker
+
+        # 认证文件位置: /root/applications.auth
+        AUTH_FILE="/root/applications.auth"
+
+        mkdir -p /var/www/pterodactyl
+        cd /var/www/pterodactyl
+
+        # 随机用户名称和密码写入文件
+        USERNAME=$(tr -dc 'a-z' < /dev/urandom | head -c 8)
+        PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
+        MYSQL_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
+        MYSQL_ROOT_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
+
+        # 将用户名和密码写入文件
+        echo "pterodactyl_username: $USERNAME" > $AUTH_FILE
+        echo "pterodactyl_password: $PASSWORD" >> $AUTH_FILE
+        echo "mariadb_pterodactyl_password：$MYSQL_PASSWORD" >> $AUTH_FILE
+        echo "mariadb_root_password：$MYSQL_ROOT_PASSWORD" >> $AUTH_FILE
+
+        # 写入docker-compose.yml
+        cat  > /var/www/pterodactyl/docker-compose.yml <<'EOF_COMPOSE'
+        x-common:
+          database:
+            &db-environment
+            # 不要将下面行尾 "&db-password" 删除，这对面板功能很重要。
+            # 密码占位，在服务器启动的初始化脚本中，生成随机密码并替换
+            MYSQL_PASSWORD: &db-password "$MYSQL_PASSWORD"
+            MYSQL_ROOT_PASSWORD: "$MYSQL_ROOT_PASSWORD"
+          panel:
+            &panel-environment
+            APP_URL: "http://localhost:80"
+            # 可以在这里找到有效时区列表：http://php.net/manual/zh/timezones.php
+            APP_TIMEZONE: "Asia/Shanghai"
+            APP_SERVICE_AUTHOR: "noreply@example.com"
+            # 如果您想使用 Let's Encrypt 为面板生成 SSL 证书，请取消下面的注释行并写入配置
+            # LE_EMAIL: ""
+            HASHIDS_SALT: "$(tr -dc 'a-z' < /dev/urandom | head -c 8)"
+            HASHIDS_LENGTH: 8
+          mail:
+            &mail-environment
+            MAIL_FROM: "noreply@example.com"
+            MAIL_DRIVER: "smtp"
+            MAIL_HOST: "mail"
+            MAIL_PORT: "1025"
+            MAIL_USERNAME: ""
+            MAIL_PASSWORD: ""
+            MAIL_ENCRYPTION: "true"
+
+        #
+        # ------------------------------------------------------------------------------------------
+        # 下面的危险区域
+        #
+        # 该文件的其余部分可能不需要更改。 请仅在您了解自己在做什么的情况下进行以下修改。
+        #
+        services:
+          database:
+            image: mariadb:10.5
+            restart: always
+            command: --default-authentication-plugin=mysql_native_password
+            volumes:
+              - "/srv/pterodactyl/database:/var/lib/mysql"
+            ports:
+              - "3306:3306"
+            environment:
+              <<: *db-environment
+              MYSQL_DATABASE: "panel"
+              MYSQL_USER: "pterodactyl"
+          cache:
+            image: redis:alpine
+            restart: always
+            ports:
+              - "6379:6379"
+          panel:
+            image: pterodactylchina/panel:latest
+            restart: always
+            ports:
+              - "80:80"
+              - "443:443"
+            links:
+              - database
+              - cache
+            volumes:
+              - "/srv/pterodactyl/var/:/app/var/"
+              - "/srv/pterodactyl/nginx/:/etc/nginx/http.d/"
+              - "/srv/pterodactyl/certs/:/etc/letsencrypt/"
+              - "/srv/pterodactyl/logs/:/app/storage/logs"
+            environment:
+              <<: [*panel-environment, *mail-environment]
+              DB_PASSWORD: *db-password
+              APP_ENV: "production"
+              APP_ENVIRONMENT_ONLY: "false"
+              CACHE_DRIVER: "redis"
+              SESSION_DRIVER: "redis"
+              QUEUE_DRIVER: "redis"
+              REDIS_HOST: "cache"
+              DB_HOST: "database"
+              DB_PORT: "3306"
+        EOF_COMPOSE
+
+        # 启动
+        chmod +x docker-compose.yml
+
+        docker compose up -d
+
+        # 等待数据库初始化完成
+        sleep 5
+
+        # 定义超时时间（秒）
+        TIMEOUT=60
+        START_TIME=$(date +%s)
+
+        # 创建用户的函数
+        create_user() {
+            docker compose exec panel php artisan p:user:make --email="$USERNAME@example.com" --username="$USERNAME" --name-first="Admin" --name-last="User" --password="$PASSWORD" --admin=1 2>&1
+        }
+
+        # 循环尝试创建用户，直到成功或超时
+        while true; do
+            OUTPUT=$(create_user)
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 0 ]; then
+                echo "用户创建成功！"
+                break
+            else
+                echo "$(date +"%Y-%m-%d %H:%M:%S") 创建用户失败：$OUTPUT"
+                echo "$(date +"%Y-%m-%d %H:%M:%S") 创建用户重试中..."
+            fi
+
+            # 检查是否超时
+            CURRENT_TIME=$(date +%s)
+            ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
+            if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
+                echo "$(date +"%Y-%m-%d %H:%M:%S") 创建用户超时，退出脚本。"
+                exit 1
+            fi
+
+            # 等待一段时间再重试
+            sleep 2
+        done
+
+        START_TIME=$(date +%s)
+
+        # 创建地域的函数
+        create_location() {
+            docker compose exec panel php artisan p:location:make --short="default" --long="default" 2>&1
+        }
+
+        # 循环尝试创建地域，直到成功或超时
+        while true; do
+            OUTPUT=$(create_location)
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 0 ]; then
+                echo "地域创建成功！"
+                break
+            else
+                echo "$(date +"%Y-%m-%d %H:%M:%S") 创建地域失败：$OUTPUT"
+                echo "$(date +"%Y-%m-%d %H:%M:%S") 创建地域重试中..."
+            fi
+
+            # 检查是否超时
+            CURRENT_TIME=$(date +%s)
+            ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
+            if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
+                echo "$(date +"%Y-%m-%d %H:%M:%S") 创建地域超时，退出脚本。"
+                exit 1
+            fi
+
+            # 等待一段时间再重试
+            sleep 2
+        done
+
+
+        START_TIME=$(date +%s)
+
+        # 创建节点的函数
+        create_node() {
+            docker compose exec panel php artisan p:node:make --name="default" --description="default" --locationId=1 --fqdn="$ip" --public=1 --scheme="http" --proxy=0 --maintenance=0 --maxMemory=4000 --overallocateMemory=0 --maxDisk=40000 --overallocateDisk=0 --uploadSize=100 --daemonListeningPort=8080 --daemonSFTPPort=2022 --daemonBase="/var/lib/pterodactyl/volume" 2>&1
+        }
+
+        # 循环尝试创建节点，直到成功或超时
+        while true; do
+            OUTPUT=$(create_node)
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 0 ]; then
+                echo "节点创建成功！"
+                break
+            else
+                echo "$(date +"%Y-%m-%d %H:%M:%S") 创建节点失败：$OUTPUT"
+                echo "$(date +"%Y-%m-%d %H:%M:%S") 创建节点重试中..."
+            fi
+
+            # 检查是否超时
+            CURRENT_TIME=$(date +%s)
+            ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
+            if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
+                echo "$(date +"%Y-%m-%d %H:%M:%S") 创建节点超时，退出脚本。"
+                exit 1
+            fi
+
+            # 等待一段时间再重试
+            sleep 2
+        done
+
+        # 查询语句
+        QUERY="use panel;SELECT uuid,daemon_token_id,daemon_token FROM nodes WHERE id = 1;"
+
+        # 执行查询并将结果保存到变量
+        read -r UUID_VALUE TOKEN_ID_VALUE TOKEN_VALUE < <(docker compose exec database mysql -u root -p$MYSQL_ROOT_PASSWORD -e "$QUERY" --silent)
+
+        # 运行php脚本，解密 daemon_token
+        docker compose exec -T panel /bin/sh -c 'cat > decrypt.php' <<EOF
+        <?php
+
+           require __DIR__ . '/vendor/autoload.php';
+           \$app = require_once __DIR__ . '/bootstrap/app.php';
+
+           \$kernel = \$app->make(Illuminate\Contracts\Console\Kernel::class);
+
+           \$kernel->bootstrap();
+
+           use Illuminate\Support\Facades\Config;
+           use Illuminate\Encryption\Encrypter;
+
+           \$appKey = Config::get('app.key');
+
+           \$encrypter = new Encrypter(\$appKey, 'AES-256-CBC');
+
+           \$decryptedData = \$encrypter->decrypt('$TOKEN_VALUE');
+           echo \$decryptedData . PHP_EOL;
+        EOF
+
+        # 获取解密后的 daemon_token
+        docker compose exec panel chmod +x decrypt.php
+        TOKEN_VALUE=$(docker compose exec panel php decrypt.php)
+        docker compose exec panel rm decrypt.php
+
+        # 写入 config.yml
+        cat  > /etc/pterodactyl/config.yml <<'EOF_CONFIG'
+        debug: false
+        uuid: $UUID_VALUE
+        token_id: $TOKEN_ID_VALUE
+        token: $TOKEN_VALUE
+        api:
+          host: 0.0.0.0
+          port: 8080
+          ssl:
+            enabled: false
+            cert: /etc/letsencrypt/live/$ip/fullchain.pem
+            key: /etc/letsencrypt/live/$ip/privkey.pem
+          upload_limit: 100
+        system:
+          data: /var/lib/pterodactyl/volumes
+          sftp:
+            bind_port: 2022
+        allowed_mounts: []
+        remote: 'http://$ip'
+        docker:
+          network:
+            interface: 10.254.0.1
+            dns:
+            - 100.100.2.136
+            - 100.100.2.138
+            name: pterodactyl_nw
+            ispn: false
+            driver: bridge
+            network_mode: pterodactyl_nw
+            is_internal: false
+            enable_icc: true
+            network_mtu: 1500
+            interfaces:
+              v4:
+                subnet: 10.254.0.0/16
+                gateway: 10.254.0.1
+              v6:
+                subnet: fdba:17c8:6c94::/64
+                gateway: fdba:17c8:6c94::1011
+        EOF_CONFIG
+
+        # 启动 wings
+        sudo systemctl enable --now wings
+        EOF_STARTUP_SH
+
+        sudo chmod +x /usr/local/bin/startup.sh /usr/local/bin/app-init.sh
+
+        sudo docker pull mariadb:10.5
+        sudo docker pull redis:alpine
+        sudo docker pull pterodactylchina/panel:latest
+
+        sudo mkdir -p /etc/pterodactyl
+        sudo curl -L -o /usr/local/bin/wings "https://github.com/pterodactyl-china/wings/releases/latest/download/wings_linux_$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")"
+        sudo chmod u+x /usr/local/bin/wings
+
+        cat > /etc/systemd/system/wings.service <<EOF_WINGS_SERVICE
+        [Unit]
+        Description=Pterodactycl Wings Daemon
+        After=docker.service
+        Requires=docker.service
+        PartOf=docker.service
+
+        [Service]
+        User=root
+        WorkingDirectory=/etc/pterodactyl
+        LimitNOFILE=4096
+        PIDFile=/var/run/wings/daemon.pid
+        ExecStart=/usr/local/bin/wings
+        Restart=on-failure
+        StartLimitInterval=180
+        StartLimitBurst=30
+        RestartSec=5s
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF_WINGS_SERVICE
+
+        sudo systemctl enable app-init.service
+
+
+        # 安装云监控Agent
+        ARGUS_VERSION=3.5.7 /bin/bash -c "$(curl -sS https://cms-agent-ap-southeast-1.oss-ap-southeast-1-internal.aliyuncs.com/Argus/agent_install_ecs-1.7.sh)" 2>&1
+
+        ###################################################
+        #  1. 清理制作镜像过程中产生的日志，避免敏感信息泄漏。    #
+        #    - 系统日志                                    #
+        #    - 应用日志                                    #
+        #  2. 清理制作镜像过程中命令行历史                    #
+        #  3. 删除所有账户默认密码，删除所有用户目录下的ssh配置  #
+        #  4. 清理缓存                                     #
+        ###################################################
+
+        set -xe
 
         function clean_log(){
             rm -fv /usr/local/aegis/aegis_update/data/data.[0-9]
@@ -161,6 +561,9 @@ ImageBuilder:
             rm -rf /var/log/anaconda/*
             rm -rf /var/log/sa/*
             rm -rf /var/log/conman*
+            rm -rf /var/log/journal/*
+            rm -rf /var/log/cloud-init.log
+            rm -rf /var/log/cloud-init-output.log
 
             for i in $(find /var/log/ -type f); do > $i; done
 
@@ -172,7 +575,9 @@ ImageBuilder:
             rm -rfv /var/lib/aliyun_init/*
             rm -rfv /var/lib/cloud/*
 
-            rm -rfv  /usr/local/share/aliyun-assist/*/log/*
+            if [ -d /usr/local/share/aliyun-assist/*/log/ ];then
+                rm -rfv  /usr/local/share/aliyun-assist/*/log/*
+            fi
 
             rm -rfv /etc/ssh/sshd_config.d/*
 
@@ -186,7 +591,7 @@ ImageBuilder:
             sed -i "/debug/d" /etc/hosts
 
             # Clean up useless nameservers to prevent cloudinit local domain name resolution timeout
-            sed -i '/100.100.2.136\|100.100.2.138/!d' $(realpath /etc/resolv.conf)
+            sed -i "/nameserver/d" $(realpath /etc/resolv.conf)
 
             [ -d /etc/NetworkManager/system-connections ] && rm -fv /etc/NetworkManager/system-connections/*.nmconnection
 
@@ -213,6 +618,18 @@ ImageBuilder:
             fi
         }
 
+        function reset_sshd_cfg() {
+            sed -i '/PasswordAuthentication/d' /etc/ssh/sshd_config
+            echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
+            rm -f /etc/ssh/ssh_host_*
+        }
+
+        function clean_user_auth(){
+            passwd -l root
+            sed -i -e 's/root:[^:]*:/root:*:/g' /etc/shadow
+            rm -f /root/.ssh/*
+        }
+
         function clean_cmd_history(){
             for user in $(cut -f1 -d: /etc/passwd); do
                 if [ -f /home/$user/.bash_history ]; then
@@ -220,25 +637,11 @@ ImageBuilder:
                 fi
             done
             > /root/.bash_history
-            history -c
-            history -w
-        }
-
-        function clean_root_passwd(){
-            passwd -l root
-            sed -i '/PasswordAuthentication/d' /etc/ssh/sshd_config
-            echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
-            sed -i -e 's/root:[^:]*:/root:*:/g' /etc/shadow
-
-            for user in $(cut -f1 -d: /etc/passwd); do
-              rm -rf /home/$user/.ssh/*
-            done
-
-            rm -f /root/.ssh/*
-            rm -f /etc/ssh/ssh_host_*
         }
 
         clean_source_cache
         clean_log
+        reset_sshd_cfg
+        clean_user_auth
         clean_cmd_history
-        clean_root_passwd
+        rm -- "$0"
