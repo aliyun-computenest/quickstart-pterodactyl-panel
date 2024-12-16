@@ -96,35 +96,35 @@ ImageBuilder:
     CommandContent: |-
         #!/bin/bash
         # 关闭基础镜像非必要服务，降低基础服务资源占用
-        # systemctl stop systemd-resolved.service
-        # systemctl disable systemd-resolved.service
-        # systemctl stop rpcbind.socket
-        # systemctl stop rpcbind.service
-        # systemctl disable rpcbind.service
-        # systemctl disable rpcbind.socket
-        # systemd-analyze blame
-        #
-        # # 关闭防火墙
-        # systemctl disable firewalld
-        # systemctl stop firewalld
-        #
-        # # 关闭update-motd 服务
-        # systemctl disable update-motd.service
-        # systemctl stop update-motd.service
-        #
-        # systemctl stop systemd-resolved.service
-        # systemctl disable systemd-resolved.service
-        # systemctl stop rpcbind.socket
-        # systemctl stop rpcbind.service
-        # systemctl disable rpcbind.service
-        # systemctl disable rpcbind.socket
+        systemctl stop systemd-resolved.service
+        systemctl disable systemd-resolved.service
+        systemctl stop rpcbind.socket
+        systemctl stop rpcbind.service
+        systemctl disable rpcbind.service
+        systemctl disable rpcbind.socket
+        systemd-analyze blame
+
+        # 关闭防火墙
+        systemctl disable firewalld
+        systemctl stop firewalld
+
+        # 关闭update-motd 服务
+        systemctl disable update-motd.service
+        systemctl stop update-motd.service
+
+        systemctl stop systemd-resolved.service
+        systemctl disable systemd-resolved.service
+        systemctl stop rpcbind.socket
+        systemctl stop rpcbind.service
+        systemctl disable rpcbind.service
+        systemctl disable rpcbind.socket
 
         # 升级基础组件：
         dnf upgrade-minimal
         # 安装基础组件
-        yum check-update
-        yum -y upgrade --security
-        yum -y upgrade-minimal
+        # yum check-update
+        # yum -y upgrade --security
+        # yum -y upgrade-minimal
 
         # 安装docker-ce
         yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
