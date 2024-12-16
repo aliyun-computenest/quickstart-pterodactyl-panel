@@ -95,6 +95,7 @@ ImageBuilder:
     Tags: [ ]
     CommandContent: |-
         #!/bin/bash
+        sleep 300
         # 关闭基础镜像非必要服务，降低基础服务资源占用
         systemctl stop systemd-resolved.service
         systemctl disable systemd-resolved.service
@@ -122,9 +123,9 @@ ImageBuilder:
         # 升级基础组件：
         dnf upgrade-minimal
         # 安装基础组件
-        # yum check-update
-        # yum -y upgrade --security
-        # yum -y upgrade-minimal
+        yum check-update
+        yum -y upgrade --security
+        yum -y upgrade-minimal
 
         # 安装docker-ce
         yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
