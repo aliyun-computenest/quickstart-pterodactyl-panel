@@ -95,7 +95,6 @@ ImageBuilder:
     Tags: [ ]
     CommandContent: |-
         #!/bin/bash
-        sleep 300
         # 关闭基础镜像非必要服务，降低基础服务资源占用
         systemctl stop systemd-resolved.service
         systemctl disable systemd-resolved.service
