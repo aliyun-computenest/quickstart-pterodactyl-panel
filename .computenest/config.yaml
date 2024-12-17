@@ -86,7 +86,7 @@ Artifact:
 ImageBuilder:
   EcsImage:
     RegionId: cn-hangzhou
-    SourceImageId: aliyun_3_x64_20G_alibase_20241103.vhd
+    SourceImageId: m-bp12crf9nf5ekigizthv
     SystemDiskSize: 20
     InstanceType: ecs.c6.large
     InternetMaxBandwidthOut: 10
