@@ -13,34 +13,7 @@ Service:
       - Name: 单机版
         Url: 'ros_templates/template.yaml'
         AllowedRegions:
-          - cn-qingdao
-          - cn-beijing
-          - cn-zhangjiakou
-          - cn-huhehaote
-          - cn-wulanchabu
           - cn-hangzhou
-          - cn-shanghai
-          - cn-shenzhen
-          - cn-chengdu
-          - cn-heyuan
-          - cn-guangzhou
-          - cn-hongkong
-          - ap-northeast-1
-          - ap-southeast-1
-          - ap-southeast-3
-          - ap-southeast-5
-          - ap-southeast-6
-          - us-east-1
-          - us-west-1
-          - eu-west-1
-          - eu-central-1
-          - me-east-1
-          - me-central-1
-          - cn-nanjing
-          - cn-fuzhou
-          - ap-southeast-7
-          - ap-northeast-2
-          - cn-wuhan-lr
   ServiceType: private
   ServiceInfo:
     Locale: zh-CN
@@ -55,39 +28,12 @@ Artifact:
       RegionId: ${ImageBuilder.EcsImage.RegionId}
       ImageId: ${ImageBuilder.EcsImage.SourceImageId}
     SupportRegionIds:
-      - cn-qingdao
-      - cn-beijing
-      - cn-zhangjiakou
-      - cn-huhehaote
-      - cn-wulanchabu
       - cn-hangzhou
-      - cn-shanghai
-      - cn-shenzhen
-      - cn-chengdu
-      - cn-heyuan
-      - cn-guangzhou
-      - cn-hongkong
-      - ap-northeast-1
-      - ap-southeast-1
-      - ap-southeast-3
-      - ap-southeast-5
-      - ap-southeast-6
-      - us-east-1
-      - us-west-1
-      - eu-west-1
-      - eu-central-1
-      - me-east-1
-      - me-central-1
-      - cn-nanjing
-      - cn-fuzhou
-      - ap-southeast-7
-      - ap-northeast-2
-      - cn-wuhan-lr
 ImageBuilder:
   EcsImage:
     RegionId: cn-hangzhou
-    SourceImageId: m-bp12crf9nf5ekigizthv
-    SystemDiskSize: 20
+    SourceImageId: m-bp174zui739ryjn0tz5q
+    SystemDiskSize: 40
     InstanceType: ecs.c6.large
     InternetMaxBandwidthOut: 10
     CommandType: RunShellScript
