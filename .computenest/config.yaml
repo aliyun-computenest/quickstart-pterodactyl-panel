@@ -95,6 +95,11 @@ ImageBuilder:
     Tags: [ ]
     CommandContent: |-
         #!/bin/bash
+        # 关闭云助手升级功能
+        rm -rf /usr/local/share/aliyun-assist/$(aliyun-service -v)/aliyun_assist_update
+        touch /usr/local/share/aliyun-assist/config/disable_bootstrap_update
+        touch /usr/local/share/aliyun-assist/config/disable_update
+
         # 关闭基础镜像非必要服务，降低基础服务资源占用
         systemctl stop systemd-resolved.service
         systemctl disable systemd-resolved.service
