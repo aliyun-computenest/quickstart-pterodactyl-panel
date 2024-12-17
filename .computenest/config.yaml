@@ -12,8 +12,6 @@ Service:
     TemplateConfigs:
       - Name: 单机版
         Url: 'ros_templates/template.yaml'
-        AllowedRegions:
-          - cn-hangzhou
   ServiceType: private
   ServiceInfo:
     Locale: zh-CN
@@ -27,13 +25,11 @@ Artifact:
     ArtifactProperty:
       RegionId: ${ImageBuilder.EcsImage.RegionId}
       ImageId: ${ImageBuilder.EcsImage.SourceImageId}
-    SupportRegionIds:
-      - cn-hangzhou
 ImageBuilder:
   EcsImage:
     RegionId: cn-hangzhou
-    SourceImageId: m-bp174zui739ryjn0tz5q
-    SystemDiskSize: 40
+    SourceImageId: m-bp125wji42l3ca0evma8
+    SystemDiskSize: 20
     InstanceType: ecs.c6.large
     InternetMaxBandwidthOut: 10
     CommandType: RunShellScript
