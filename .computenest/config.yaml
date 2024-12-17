@@ -85,7 +85,7 @@ Artifact:
       - cn-wuhan-lr
 ImageBuilder:
   EcsImage:
-    RegionId: ap-southeast-1
+    RegionId: cn-hangzhou
     SourceImageId: aliyun_3_x64_20G_alibase_20240819.vhd
     SystemDiskSize: 20
     InstanceType: ecs.c6.large
@@ -504,7 +504,7 @@ ImageBuilder:
         sudo docker pull pterodactylchina/panel:latest
 
         sudo mkdir -p /etc/pterodactyl
-        sudo curl -L -o /usr/local/bin/wings "https://github.com/pterodactyl-china/wings/releases/latest/download/wings_linux_$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")"
+        sudo curl -L -o /usr/local/bin/wings "https://ghp.ci/https://github.com/pterodactyl-china/wings/releases/latest/download/wings_linux_$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")"
         sudo chmod u+x /usr/local/bin/wings
 
         cat > /etc/systemd/system/wings.service <<EOF_WINGS_SERVICE
