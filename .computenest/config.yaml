@@ -27,8 +27,8 @@ Artifact:
       ImageId: ${ImageBuilder.EcsImage.SourceImageId}
 ImageBuilder:
   EcsImage:
-    RegionId: cn-hangzhou
-    SourceImageId: m-bp125wji42l3ca0evma8
+    RegionId: ap-southeast-1
+    SourceImageId: m-t4n4r6j6eg408at0i5f8
     SystemDiskSize: 20
     InstanceType: ecs.c6.large
     InternetMaxBandwidthOut: 10
@@ -37,10 +37,6 @@ ImageBuilder:
     Tags: [ ]
     CommandContent: |-
         #!/bin/bash
-        # 关闭云助手升级功能
-        rm -rf /usr/local/share/aliyun-assist/$(aliyun-service -v)/aliyun_assist_update
-        touch /usr/local/share/aliyun-assist/config/disable_bootstrap_update
-        touch /usr/local/share/aliyun-assist/config/disable_update
 
         # 关闭基础镜像非必要服务，降低基础服务资源占用
         systemctl stop systemd-resolved.service
@@ -177,7 +173,7 @@ ImageBuilder:
         echo "mariadb_root_password：$MYSQL_ROOT_PASSWORD" >> $AUTH_FILE
 
         # 写入docker-compose.yml
-        cat  > /var/www/pterodactyl/docker-compose.yml <<'EOF_COMPOSE'
+        cat  > /var/www/pterodactyl/docker-compose.yml << EOF_COMPOSE
         x-common:
           database:
             &db-environment
@@ -449,7 +445,7 @@ ImageBuilder:
         sudo curl -L -o /usr/local/bin/wings "https://ghp.ci/https://github.com/pterodactyl-china/wings/releases/latest/download/wings_linux_$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")"
         sudo chmod u+x /usr/local/bin/wings
 
-        cat > /etc/systemd/system/wings.service <<EOF_WINGS_SERVICE
+        cat > /etc/systemd/system/wings.service << EOF_WINGS_SERVICE
         [Unit]
         Description=Pterodactycl Wings Daemon
         After=docker.service
