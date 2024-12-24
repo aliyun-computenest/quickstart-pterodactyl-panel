@@ -35,7 +35,7 @@ Pterodactyl 是使用 PHP、React 和 Go 构建的开源游戏服务器管理面
 1. 单击[部署链接](https://computenest.console.aliyun.com/service/instance/create/cn-hangzhou?type=user&ServiceName=%E7%BF%BC%E9%BE%99%E9%9D%A2%E6%9D%BF%E7%A4%BE%E5%8C%BA%E7%89%88)，进入服务实例部署界面。
 2. 选择新建ECS实例并根据界面提示配置参数，配置完成后点击下一步：确认订单。
     <img src="1.jpg" width="100%" align="bottom"/>
-3. 点击立即创建，等待服务实例创建完成。服务实例创建成功后，进入服务实例资源页。
+3. 点击立即创建，等待服务实例创建完成。服务实例创建成功后，进入服务实例概览页。
     <img src="2.jpg" width="100%" align="bottom"/>
 4. 点击服务连接访问面板。
     <img src="3.jpg" width="100%" align="bottom"/>
