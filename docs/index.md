@@ -1,43 +1,46 @@
-# AnalyticDB PostgreSQL数据库与LLM（大语言模型）构建‘仓内智能’
+# 快速部署翼龙面板社区版
 
-## 背景介绍
+## 概述
 
-`AnalyticDB PostgreSQL 作为一个数据分析与轻量级AI一体化的平台，可以帮助绝大多数中小型客户在数据库内部，闭环实现‘数据分析为主’与‘AI应用为辅’的诉求，为数据分析需求插上AI的翅膀。通过与部署在阿里云 PAI-EAS 平台上的 LLM（大语言模型） 进行交互，实现对语言的推理、分类、归纳、总结等扩展能力。`。
+Pterodactyl 是使用 PHP、React 和 Go 构建的开源游戏服务器管理面板。 同时不忘进行安全性设计，Pterodactyl 在相互隔离的 Docker 容器中运行所有游戏服务器， 同时为管理员和用户提供直观的用户界面。
 
-```
-本服务用于开通：AnalyticDB PostgreSQL数据库实例 + PAI-EAS平台上的LLM（大语言）服务，快速体验‘仓内智能’。
-```
-## 部署架构
-![avatar](deploy.png)
-```
-通过AnalyticDB PostgreSQL数据库提供的新函数：PG_CATALOG.AI_GENERATE_TEXT(...)，与部署在阿里云PAI模型在线服务（EAS）平台中的LLM（大语言模型）服务进行交互，实现对语言的推理、分类、归纳、总结。
-```
-## 开通 AnalyticDB PostgreSQL (ADBPG) 仓内智能
-```
-通过计算巢服务，一站式创建：
-1. ADBPG 数据仓库实例； 
-2. 在PAI-EAS平台上部署LLM（大语言）服务；
-```
+## 计费说明
 
-## 创建流程
-### 1. 首先在阿里云账户 - 控制台中，找到‘计算巢’服务
-![avatar](image.png)
-### 2. 进入计算巢服务后，点击‘服务市场’，并在搜索框中搜寻关键字‘仓内智能’，找到‘AnalyticDB PostgreSQL 仓内智能’服务，并单击进入。
-![avatar](image2.png)
-### 3. 选择 ADBPG 与 PAI-EAS 开通地域，并依次配置需要部署的大语言服务、ADBPG数据仓库的规格、VPC等相关信息。检查配置无误后，确认订单，创建服务。
-![avatar](image3.png)
-![avatar](image4.png)
-![avatar](image5.png)
-### 4. 计算巢会分别创建：ADBPG 数据仓库实例、与部署在 PAI-EAS 的大模型服务。整体时间大约20分钟左右。等待进度条变为 100%，点击进入。
-![avatar](image6.png)
-![avatar](image7.png)
-### 5. 在‘概览’中，可以查询到调用大模型服务，所用到的访问地址（Endpoint）与 Token。这两个参数非常重要。同时也可在 PAI-EAS 服务中查询到（详情见后）。
-![avatar](image8.png)
-### 6. 选择‘资源’，查看部署完成的 ADBPG数据仓库实例信息、与PAI-EAS 大模型语言服务。
-![avatar](image9.png)
-### 7. 点击步骤 #6 中的 AnalyticDB PostgreSQL，查看开通的 ADBPG数据仓库实例信息。
-![avatar](image10.png)
-### 8. 点击步骤 #6 中的‘机器学习’服务，可以查看到PAI-EAS 大语言模型服务，对应的具体部署信息。例如：查看大语言模型的 Endpoint 与 Token。这部分信息，在后续使用‘大语言模型’服务时会用到（通过步骤#5，也可以查询到该信息）。
-![avatar](image11.png)
-### 9. 参考以下文档，使用‘仓内智能’特性。
-`https://help.aliyun.com/zh/analyticdb-for-postgresql/user-guide/aigc-warehouse-intelligence?spm=a2c4g.11186623.0.i3`
+翼龙面板社区版在计算巢上部署的费用主要涉及：
+
+- 所选vCPU与内存规格
+- 磁盘容量
+- 公网带宽
+
+计费方式：按量付费（小时）
+
+预估费用在创建实例时可实时看到。
+
+## RAM账号所需权限
+
+翼龙面板社区版需要对ECS、VPC等资源进行访问和创建操作，若您使用RAM用户创建服务实例，需要在创建服务实例前，对使用的RAM用户的账号添加相应资源的权限。添加RAM权限的详细操作，请参见[为RAM用户授权](https://help.aliyun.com/document_detail/121945.html)
+。所需权限如下表所示。
+
+| 权限策略名称                          | 备注                         |
+|---------------------------------|----------------------------|
+| AliyunECSFullAccess             | 管理云服务器服务（ECS）的权限           |
+| AliyunVPCFullAccess             | 管理专有网络（VPC）的权限             |
+| AliyunROSFullAccess             | 管理资源编排服务（ROS）的权限           |
+| AliyunComputeNestUserFullAccess | 管理计算巢服务（ComputeNest）的用户侧权限 |
+| AliyunCloudMonitorFullAccess    | 管理云监控（CloudMonitor）的权限     |
+
+
+
+## 部署流程
+1. 单击[部署链接](https://computenest.console.aliyun.com/service/instance/create/cn-hangzhou?type=user&ServiceName=%E7%BF%BC%E9%BE%99%E9%9D%A2%E6%9D%BF%E7%A4%BE%E5%8C%BA%E7%89%88)，进入服务实例部署界面。
+2. 选择新建ECS实例并根据界面提示配置参数，配置完成后点击下一步：确认订单。
+    <img src="1.jpg" width="100%" align="bottom"/>
+3. 点击立即创建，等待服务实例创建完成。服务实例创建成功后，进入服务实例资源页。
+    <img src="2.jpg" width="100%" align="bottom"/>
+4. 点击服务连接访问面板。
+    <img src="3.jpg" width="100%" align="bottom"/>
+5. 执行命令获取账号和密码以登录：
+    ```shell
+    cat applications.auth
+    ```
+    <img src="4.jpg" width="100%" align="bottom"/>
