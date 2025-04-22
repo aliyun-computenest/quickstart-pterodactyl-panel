@@ -1,0 +1,6 @@
+templateName: 单机版
+parameters:
+  PayType: "PostPaid"
+  EcsInstanceType: "Please fill in"
+  InstancePassword: "$[iact3-auto]"
+caseId: stc-4345df4323084a829638
