@@ -81,7 +81,7 @@ ImageBuilder:
         Description=Application init service
         Wants=cloud-final.service
         Requires=network-online.target
-        After=network-online.target cloud-final.service docker.service
+        After=network-online.target cloud-final.service
 
         [Service]
         Type=oneshot
@@ -136,7 +136,7 @@ ImageBuilder:
                 }
             ]
         }' > /etc/docker/daemon.json
-        if [[ $region == ${prefixChinaRegion}* && $region != "cn-hongkong" ]]; then
+        if [[ ${region} == ${prefixChinaRegion}* && ${region} != "cn-hongkong" ]]; then
           echo '{
               "default-address-pools": [
                   {
@@ -259,7 +259,7 @@ ImageBuilder:
         sleep 5
 
         # 定义超时时间（秒）
-        TIMEOUT=60
+        TIMEOUT=120
         START_TIME=$(date +%s)
 
         # 创建用户的函数
@@ -332,6 +332,7 @@ ImageBuilder:
 
         # 循环尝试创建节点，直到成功或超时
         while true; do
+            ip=$(curl -s 100.100.100.200/latest/meta-data/eipv4)
             OUTPUT=$(create_node)
             EXIT_CODE=$?
             if [ $EXIT_CODE -eq 0 ]; then
@@ -445,7 +446,7 @@ ImageBuilder:
 
         cat > /etc/systemd/system/wings.service << EOF_WINGS_SERVICE
         [Unit]
-        Description=Pterodactycl Wings Daemon
+        Description=pterodactyl Wings Daemon
         After=docker.service
         Requires=docker.service
         PartOf=docker.service
@@ -480,14 +481,28 @@ ImageBuilder:
         #  4. 清理缓存                                     #
         ###################################################
 
-        set -xe
+        function disable_services(){
+          # 关闭基础镜像非必要服务，降低基础服务资源占用
+          # 关闭防火墙
+          systemctl disable firewalld
+          systemctl stop firewalld
+          # 关闭update-motd 服务
+          systemctl disable update-motd.service
+          systemctl stop update-motd.service
+          systemctl stop systemd-resolved.service
+          systemctl disable systemd-resolved.service
+          systemctl stop rpcbind.socket
+          systemctl stop rpcbind.service
+          systemctl disable rpcbind.service
+          systemctl disable rpcbind.socket
+        }
 
         function clean_log(){
-            # rm -fv /usr/local/aegis/aegis_update/data/data.[0-9]
-            # rm -fv /usr/local/aegis/aegis_client/aegis_*/data/data.[0-9]
+            #rm -fv /usr/local/aegis/aegis_update/data/data.[0-9]
+            #rm -fv /usr/local/aegis/aegis_client/aegis_*/data/data.[0-9]
 
-            # rm -fv /usr/local/aegis/globalcfg/domaincfg.ini
-            # rm -fv /opt/aegis/globalcfg/domaincfg.ini
+            #rm -fv /usr/local/aegis/globalcfg/domaincfg.ini
+            #rm -fv /opt/aegis/globalcfg/domaincfg.ini
 
             rm -rf /var/log/anaconda/*
             rm -rf /var/log/ecsgo.log*
@@ -532,13 +547,13 @@ ImageBuilder:
             sed -i "/debug/d" /etc/hosts
 
             # Clean up useless nameservers to prevent cloudinit local domain name resolution timeout
-            sed -i "/nameserver/d" $(realpath /etc/resolv.conf)
+            # sed -i "/nameserver/d" $(realpath /etc/resolv.conf)
 
-            [ -d /etc/NetworkManager/system-connections ] && rm -fv /etc/NetworkManager/system-connections/*.nmconnection
+            # [ -d /etc/NetworkManager/system-connections ] && rm -fv /etc/NetworkManager/system-connections/*.nmconnection
 
-            if [[ ! -L /etc/udev/rules.d/70-persistent-net.rules ]];then
-                rm -rfv /etc/udev/rules.d/70-persistent-net.rules
-            fi
+            # if [[ ! -L /etc/udev/rules.d/70-persistent-net.rules ]];then
+            #    rm -rfv /etc/udev/rules.d/70-persistent-net.rules
+            # fi
 
             sync
             sync
@@ -580,6 +595,7 @@ ImageBuilder:
             > /root/.bash_history
         }
 
+        disable_services
         clean_source_cache
         clean_log
         reset_sshd_cfg
