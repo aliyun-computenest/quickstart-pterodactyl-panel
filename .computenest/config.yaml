@@ -599,7 +599,7 @@ ImageBuilder:
           > /root/.bash_history
       }
 
-      disable_services
+      # disable_services
       clean_source_cache
       clean_log
       reset_sshd_cfg
